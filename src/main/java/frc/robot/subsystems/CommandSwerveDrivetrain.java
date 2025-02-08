@@ -2,23 +2,35 @@ package frc.robot.subsystems;
 
 import static edu.wpi.first.units.Units.*;
 
+import java.util.HashMap;
+import java.util.function.BooleanSupplier;
+import java.util.function.DoubleSupplier;
 import java.util.function.Supplier;
 
 import com.ctre.phoenix6.SignalLogger;
 import com.ctre.phoenix6.Utils;
+import com.ctre.phoenix6.hardware.Pigeon2;
+import com.ctre.phoenix6.swerve.SwerveDrivetrain;
 import com.ctre.phoenix6.swerve.SwerveDrivetrainConstants;
 import com.ctre.phoenix6.swerve.SwerveModuleConstants;
 import com.ctre.phoenix6.swerve.SwerveRequest;
+import com.ctre.phoenix6.swerve.SwerveModule.SteerRequestType;
+import com.ctre.phoenix6.swerve.utility.PhoenixPIDController;
+import com.fasterxml.jackson.annotation.JsonTypeInfo.Id;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.config.PIDConstants;
 import com.pathplanner.lib.config.RobotConfig;
 import com.pathplanner.lib.controllers.PPHolonomicDriveController;
 
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.Matrix;
+import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
+import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.Notifier;
@@ -26,18 +38,21 @@ import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
-
+import frc.robot.LimelightHelpers;
+import frc.robot.LimelightHelpers.RawFiducial;
 import frc.robot.generated.TunerConstants.TunerSwerveDrivetrain;
+
 
 /**
  * Class that extends the Phoenix 6 SwerveDrivetrain class and implements
  * Subsystem so it can easily be used in command-based projects.
  */
 public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Subsystem {
+    double lastTag = 18.0;
     private static final double kSimLoopPeriod = 0.005; // 5 ms
     private Notifier m_simNotifier = null;
     private double m_lastSimTime;
-
+    public HashMap<Double, Double> Angles = new HashMap<Double, Double>();
     /* Blue alliance sees forward as 0 degrees (toward red alliance wall) */
     private static final Rotation2d kBlueAlliancePerspectiveRotation = Rotation2d.kZero;
     /* Red alliance sees forward as 180 degrees (toward blue alliance wall) */
@@ -50,7 +65,10 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     private final SwerveRequest.SysIdSwerveSteerGains m_steerCharacterization = new SwerveRequest.SysIdSwerveSteerGains();
     private final SwerveRequest.SysIdSwerveRotation m_rotationCharacterization = new SwerveRequest.SysIdSwerveRotation();
     private final SwerveRequest.ApplyRobotSpeeds m_pathApplyRobotSpeeds = new SwerveRequest.ApplyRobotSpeeds();
+    PIDController AimingX = new PIDController(.1, 0, 0);
+    private final SwerveRequest.FieldCentricFacingAngle m_turnToAngle = new SwerveRequest.FieldCentricFacingAngle();
 
+    Vision Vision = new Vision();
     /* SysId routine for characterizing translation. This is used to find PID gains for the drive motors. */
     private final SysIdRoutine m_sysIdRoutineTranslation = new SysIdRoutine(
         new SysIdRoutine.Config(
@@ -110,6 +128,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         )
     );
 
+
     public void configureAutoBuilder() {
         try {
             var config = RobotConfig.fromGUISettings();
@@ -161,6 +180,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         if (Utils.isSimulation()) {
             startSimThread();
         }
+        SetAngles();
     }
 
     /**
@@ -185,7 +205,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         if (Utils.isSimulation()) {
             startSimThread();
         }
-
+        SetAngles();
     }
 
     /**
@@ -218,8 +238,75 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         if (Utils.isSimulation()) {
             startSimThread();
         }
-  
+        SetAngles();
     }
+    void SetAngles(){
+                //BlueSide
+                Angles.put(17.0,300.0);
+                Angles.put(18.0,0.0);
+                Angles.put(19.0,60.0);
+                Angles.put(20.0,120.0);
+                Angles.put(21.0,180.0);
+                Angles.put(22.0,240.0);
+        
+                //RedSide
+                Angles.put(6.0,300.0);
+                Angles.put(7.0,0.0);
+                Angles.put(8.0,60.0);
+                Angles.put(9.0,120.0);
+                Angles.put(10.0,180.0);
+                Angles.put(11.0,240.0);
+        
+                //CoralColecterBlue
+                Angles.put(13.0,240.0);
+                Angles.put(12.0,120.0);
+                
+                //CoralColecterRed
+                Angles.put(2.0,240.0);
+                Angles.put(1.0,120.0);
+        
+                //BargeBlue
+                Angles.put(14.0,0.0);
+                Angles.put(4.0,180.0);
+        
+                //BargeRed
+                Angles.put(15.0,180.0);
+                Angles.put(5.0,0.0);
+
+                m_turnToAngle.HeadingController = new PhoenixPIDController(2, 0, 0);
+    }
+
+    void StrafeApril(double measurementX, double yVel, boolean left){
+        double offset = 1;
+        if (left){
+            offset = -1;
+        }
+        this.setControl(new SwerveRequest.RobotCentric().withVelocityY(-AimingX.calculate(measurementX, offset)).withVelocityX(yVel));
+    }
+
+    public Command StrafeApril (DoubleSupplier measurementX, DoubleSupplier yVel,BooleanSupplier left){
+        return run(()-> StrafeApril(measurementX.getAsDouble(), yVel.getAsDouble(), left.getAsBoolean()));
+      }
+
+    void AprilTurn (double AprilNumber){
+        double aprilNumber = AprilNumber;
+        if (aprilNumber == -1){
+            aprilNumber = lastTag;
+        }
+        else {
+            lastTag = aprilNumber;
+        }
+        double currentAngle = getState().Pose.getRotation().getDegrees();
+        double targetAngle = Angles.get(aprilNumber)* (Math.PI/180.0);
+        System.out.println(targetAngle*(180.0/Math.PI));
+        System.out.println(aprilNumber);
+        this.setControl(m_turnToAngle);
+    }
+
+
+     public Command TurntoApril (DoubleSupplier AprilNumber){
+        return run(()-> AprilTurn(AprilNumber.getAsDouble()));
+      }
 
     /**
      * Returns a command that applies the specified control request to this swerve drivetrain.
@@ -274,6 +361,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         }
     }
 
+
     private void startSimThread() {
         m_lastSimTime = Utils.getCurrentTimeSeconds();
 
@@ -314,6 +402,8 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
      * @param visionMeasurementStdDevs Standard deviations of the vision pose measurement
      *     in the form [x, y, theta]ᵀ, with units in meters and radians.
      */
+
+     
     @Override
     public void addVisionMeasurement(
         Pose2d visionRobotPoseMeters,
@@ -322,4 +412,5 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     ) {
         super.addVisionMeasurement(visionRobotPoseMeters, Utils.fpgaToCurrentTime(timestampSeconds), visionMeasurementStdDevs);
     }
+
 }

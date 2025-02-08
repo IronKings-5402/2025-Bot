@@ -1,0 +1,28 @@
+{
+  "NetworkTables Settings": {
+    "mode": "Client (NT4)",
+    "serverTeam": "5402"
+  },
+  "transitory": {
+    "CameraPublisher": {
+      "limelight-april": {
+        "open": true
+      }
+    },
+    "DriveState": {
+      "open": true
+    },
+    "Pose": {
+      "double[]##v_/Pose/robotPose": {
+        "open": true
+      },
+      "open": true
+    },
+    "limelight-april": {
+      "double[]##v_/limelight-april/rawfiducials": {
+        "open": true
+      },
+      "open": true
+    }
+  }
+}
