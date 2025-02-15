@@ -6,6 +6,7 @@ package frc.robot.subsystems;
 
 import java.util.HashMap;
 
+import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.LimelightHelpers;
@@ -36,6 +37,11 @@ public double getZ (){
  public double AprilNumber (){
     return LimelightHelpers.getFiducialID("limelight-april");
 }
+
+public LimelightHelpers.PoseEstimate getPose(){
+  return LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight-april");
+}
+
 
 
 

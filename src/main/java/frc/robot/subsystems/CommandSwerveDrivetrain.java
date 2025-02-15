@@ -2,10 +2,13 @@ package frc.robot.subsystems;
 
 import static edu.wpi.first.units.Units.*;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.function.BooleanSupplier;
 import java.util.function.DoubleSupplier;
 import java.util.function.Supplier;
+
+import org.json.simple.parser.ParseException;
 
 import com.ctre.phoenix6.SignalLogger;
 import com.ctre.phoenix6.Utils;
@@ -17,6 +20,9 @@ import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.config.PIDConstants;
 import com.pathplanner.lib.config.RobotConfig;
 import com.pathplanner.lib.controllers.PPHolonomicDriveController;
+import com.pathplanner.lib.path.PathPlannerPath;
+import com.pathplanner.lib.util.FileVersionException;
+
 import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Pose2d;
@@ -29,6 +35,7 @@ import edu.wpi.first.wpilibj.Notifier;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
+import edu.wpi.first.wpilibj2.command.WaitCommand;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.generated.TunerConstants.TunerSwerveDrivetrain;
 
@@ -279,18 +286,20 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
       }
 
     void turnToAngle (double angle, double x, double y){
-        // double aprilNumber = AprilNumber;
-        // if (aprilNumber == -1){
-        //     aprilNumber = lastTag;
-        // }
-        // else {
-        //     lastTag = aprilNumber;
-        // }
+        /*double aprilNumber = AprilNumber;
+         if (aprilNumber == -1){
+             aprilNumber = lastTag;
+         }
+         else {
+             lastTag = aprilNumber;
+         }*/
         System.out.println(angle);
         this.setControl(m_turnToAngle.withTargetDirection(Rotation2d.fromDegrees(angle)).withVelocityX(y).withVelocityY(x));
     }
 
 
+
+    //HEY Elija or however you type your name could you put comments on what you add so I know what your doing
      public Command turnToAngle (DoubleSupplier angle, DoubleSupplier x, DoubleSupplier y){
         return run(()-> turnToAngle(angle.getAsDouble(), x.getAsDouble(),y.getAsDouble()));
       }
@@ -326,6 +335,23 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
      */
     public Command sysIdDynamic(SysIdRoutine.Direction direction) {
         return m_sysIdRoutineToApply.dynamic(direction);
+    }
+
+    public enum paths {
+        station,
+        coralA,
+        coralB
+    }
+
+    public Command goToPoint(paths path){
+        String pathName = path.name();
+        try {
+            return AutoBuilder.followPath(PathPlannerPath.fromPathFile(pathName));
+        } catch (Exception e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+            return new WaitCommand(.1);
+        }
     }
 
     @Override
@@ -400,5 +426,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     ) {
         super.addVisionMeasurement(visionRobotPoseMeters, Utils.fpgaToCurrentTime(timestampSeconds), visionMeasurementStdDevs);
     }
+
+    
 
 }

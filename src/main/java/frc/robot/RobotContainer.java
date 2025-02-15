@@ -23,6 +23,7 @@ import frc.robot.subsystems.CommandSwerveDrivetrain;
 import frc.robot.subsystems.Elevator;
 import frc.robot.subsystems.GrabbyThing;
 import frc.robot.subsystems.Vision;
+import frc.robot.subsystems.CommandSwerveDrivetrain.paths;
 
 public class RobotContainer {
     private double MaxSpeed = TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); // kSpeedAt12Volts desired top speed
@@ -92,14 +93,13 @@ public class RobotContainer {
        joystick.rightBumper().whileTrue(drivetrain.StrafeApril(()-> vision.getX(),() -> joystick.getLeftY() * MaxSpeed,() -> false));
        joystick.leftBumper().whileTrue(drivetrain.StrafeApril(()-> vision.getX(),() -> joystick.getLeftY() * MaxSpeed,() -> true));
 
-        /*
+        
         joystick2.y().onTrue(elevator.setAngleCommand(() ->110));
         joystick2.b().onTrue(elevator.setAngleCommand(() ->80));
         joystick2.a().onTrue(elevator.setAngleCommand(() ->70));
         joystick2.leftBumper().onTrue(elevator.intakeMotorCommand(() -> 1));
-         */
         elevator.sensor().onTrue(elevator.intakeMotorCommand(() -> 0));
-        //reset the field-centric heading on left bumper press
+        joystick2.rightBumper().onTrue(drivetrain.goToPoint(paths.station));
         joystick.start().onTrue(drivetrain.runOnce(() -> drivetrain.seedFieldCentric()));
     
 
