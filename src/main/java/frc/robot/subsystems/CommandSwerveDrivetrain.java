@@ -9,28 +9,20 @@ import java.util.function.Supplier;
 
 import com.ctre.phoenix6.SignalLogger;
 import com.ctre.phoenix6.Utils;
-import com.ctre.phoenix6.hardware.Pigeon2;
-import com.ctre.phoenix6.swerve.SwerveDrivetrain;
 import com.ctre.phoenix6.swerve.SwerveDrivetrainConstants;
 import com.ctre.phoenix6.swerve.SwerveModuleConstants;
 import com.ctre.phoenix6.swerve.SwerveRequest;
-import com.ctre.phoenix6.swerve.SwerveModule.SteerRequestType;
 import com.ctre.phoenix6.swerve.utility.PhoenixPIDController;
-import com.fasterxml.jackson.annotation.JsonTypeInfo.Id;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.config.PIDConstants;
 import com.pathplanner.lib.config.RobotConfig;
 import com.pathplanner.lib.controllers.PPHolonomicDriveController;
-
-import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
-import edu.wpi.first.networktables.NetworkTableInstance;
-import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.Notifier;
@@ -38,8 +30,6 @@ import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
-import frc.robot.LimelightHelpers;
-import frc.robot.LimelightHelpers.RawFiducial;
 import frc.robot.generated.TunerConstants.TunerSwerveDrivetrain;
 
 
@@ -288,25 +278,23 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         return run(()-> StrafeApril(measurementX.getAsDouble(), yVel.getAsDouble(), left.getAsBoolean()));
       }
 
-    void AprilTurn (double AprilNumber){
-        double aprilNumber = AprilNumber;
-        if (aprilNumber == -1){
-            aprilNumber = lastTag;
-        }
-        else {
-            lastTag = aprilNumber;
-        }
-        double currentAngle = getState().Pose.getRotation().getDegrees();
-        double targetAngle = Angles.get(aprilNumber)* (Math.PI/180.0);
-        System.out.println(targetAngle*(180.0/Math.PI));
-        System.out.println(aprilNumber);
-        this.setControl(m_turnToAngle);
+    void turnToAngle (double angle, double x, double y){
+        // double aprilNumber = AprilNumber;
+        // if (aprilNumber == -1){
+        //     aprilNumber = lastTag;
+        // }
+        // else {
+        //     lastTag = aprilNumber;
+        // }
+        System.out.println(angle);
+        this.setControl(m_turnToAngle.withTargetDirection(Rotation2d.fromDegrees(angle)).withVelocityX(y).withVelocityY(x));
     }
 
 
-     public Command TurntoApril (DoubleSupplier AprilNumber){
-        return run(()-> AprilTurn(AprilNumber.getAsDouble()));
+     public Command turnToAngle (DoubleSupplier angle, DoubleSupplier x, DoubleSupplier y){
+        return run(()-> turnToAngle(angle.getAsDouble(), x.getAsDouble(),y.getAsDouble()));
       }
+
 
     /**
      * Returns a command that applies the specified control request to this swerve drivetrain.
