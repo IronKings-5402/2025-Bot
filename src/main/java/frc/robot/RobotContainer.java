@@ -10,6 +10,7 @@ import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
 import com.pathplanner.lib.commands.PathPlannerAuto;
 import com.ctre.phoenix6.swerve.SwerveRequest;
 
+import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -18,7 +19,6 @@ import edu.wpi.first.wpilibj2.command.WaitCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 
 import frc.robot.generated.TunerConstants;
-import frc.robot.subsystems.BallGrabber;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
 import frc.robot.subsystems.Elevator;
 import frc.robot.subsystems.GrabbyThing;
@@ -41,7 +41,6 @@ public class RobotContainer {
     private final CommandXboxController joystick = new CommandXboxController(0);
     private final CommandXboxController joystick2 = new CommandXboxController(1);
 
-    private final CommandXboxController Board = new CommandXboxController(1);
     public final CommandSwerveDrivetrain drivetrain = TunerConstants.createDrivetrain();
     Elevator elevator = new Elevator();
     Vision vision = new Vision();
@@ -93,16 +92,57 @@ public class RobotContainer {
        joystick.rightBumper().whileTrue(drivetrain.StrafeApril(()-> vision.getX(),() -> joystick.getLeftY() * MaxSpeed,() -> false));
        joystick.leftBumper().whileTrue(drivetrain.StrafeApril(()-> vision.getX(),() -> joystick.getLeftY() * MaxSpeed,() -> true));
 
+        // Joystick 2 is temporary used in place pf board. Two Physical xbox controllere
+        //joystick2.y().onTrue(elevator.setAngleCommand(() ->110));
+        //joystick2.b().onTrue(elevator.setAngleCommand(() ->80));
+        joystick2.a().onTrue(elevator.intakeMotorCommand(() ->1));
+        //thing
+        joystick2.leftBumper().onTrue(elevator.elevatorLift(()->6)
+        .andThen(new WaitCommand(1))
+        .andThen(elevator.setAngleCommand(()->Constant.intakeAngle))
+        .andThen(elevator.intakeMotorCommand(()-> .1)));
+
+        joystick2.povUp().onTrue(elevator.setAngleCommand(()->Constant.AllLevels)
+        .andThen(new WaitCommand(.1))
+        .andThen(elevator.elevatorLift(()->Constant.hight2))
+        .andThen(new WaitCommand(1))
+        .andThen(elevator.intakeMotorCommand(()->.6))
+        .andThen(new WaitCommand(.3))
+        .andThen(elevator.intakeMotorCommand(()->0.0)));
         
-        joystick2.y().onTrue(elevator.setAngleCommand(() ->110));
-        joystick2.b().onTrue(elevator.setAngleCommand(() ->80));
-        joystick2.a().onTrue(elevator.setAngleCommand(() ->70));
-        joystick2.leftBumper().onTrue(elevator.intakeMotorCommand(() -> 1));
-        elevator.sensor().onTrue(elevator.intakeMotorCommand(() -> 0));
+        joystick2.rightTrigger().onTrue(elevator.setAngleCommand(()->Constant.AllLevels)
+        .andThen(new WaitCommand(.1))
+        .andThen(elevator.elevatorLift(()->Constant.hight3))
+        .andThen(new WaitCommand(1))
+        .andThen(elevator.intakeMotorCommand(()->.6))
+        .andThen(new WaitCommand(.3))
+        .andThen(elevator.intakeMotorCommand(()->0.0)));
+
+        joystick2.leftTrigger().onTrue(elevator.setAngleCommand(()->Constant.AllLevels)
+        .andThen(new WaitCommand(.1))
+        .andThen(elevator.elevatorLift(()->Constant.hight4))
+        .andThen(new WaitCommand(1))
+        .andThen(elevator.intakeMotorCommand(()->.6))
+        .andThen(new WaitCommand(.3))
+        .andThen(elevator.intakeMotorCommand(()->0.0)));
+
+
+        joystick2.povDown().whileTrue(elevator.ServoThing(270));
+        joystick2.povLeft().whileTrue(elevator.ServoThing(90));
+        // intake on
+        joystick2.start().onTrue(elevator.intakeMotorCommand(() -> 1));
+ 
+        // sensor tripped intake off
+        elevator.sensor().onTrue(elevator.intakeMotorCommand(() -> 0)
+        .andThen(elevator.setAngleCommand(()-> Constant.AllLevels)));
+
+        // goes to path
         joystick2.rightBumper().onTrue(drivetrain.goToPoint(paths.station));
+
+        // reset heading
         joystick.start().onTrue(drivetrain.runOnce(() -> drivetrain.seedFieldCentric()));
     
-
+        // faces angle
         joystick.povDown().onTrue(drivetrain.turnToAngle(() -> 180, () -> joystick.getLeftX() * MaxSpeed,() ->joystick.getLeftY() * MaxSpeed));
         joystick.povUp().onTrue(drivetrain.turnToAngle(() -> 0, () -> joystick.getLeftX() * MaxSpeed, () ->joystick.getLeftY() * MaxSpeed));
         joystick.povLeft().onTrue(drivetrain.turnToAngle(() -> 270, () -> joystick.getLeftX() * MaxSpeed ,() -> joystick.getLeftY() * MaxSpeed));
@@ -111,18 +151,37 @@ public class RobotContainer {
         joystick.povDownRight().onTrue(drivetrain.turnToAngle(() -> 135, () ->joystick.getLeftX() * MaxSpeed,() ->joystick.getLeftY() * MaxSpeed));
         joystick.povUpLeft().onTrue(drivetrain.turnToAngle(() -> 315, ()->joystick.getLeftX() * MaxSpeed , () ->joystick.getLeftY() * MaxSpeed));
         joystick.povUpRight().onTrue(drivetrain.turnToAngle(() -> 45, ()->joystick.getLeftX() * MaxSpeed, ()->joystick.getLeftY() * MaxSpeed));
+
+        // resets to normal driving if right stick moved
         joystick.axisGreaterThan(4, .05).onTrue(drivetrain.getDefaultCommand());
         joystick.axisGreaterThan(4, -.05).onTrue(drivetrain.getDefaultCommand());
 
-        // Board.x().onTrue(ballGrabber.BallGrabbyThing(0.5));
-        // Board.x().onFalse(ballGrabber.BallGrabbyThing(0.0));
-        // Board.y().onTrue(ballGrabber.BallOutputThing(0.5));
-        // Board.y().onFalse(ballGrabber.BallOutputThing(0.0));
-        // Board.rightBumper().onTrue(ballGrabber.BallGrabbyThingTurning(0.1));
-        // Board.b().onTrue(ballGrabber.BallGrabbyThingTurning(0.0));
+        joystick2.y().whileTrue(elevator.coaralGuideCommand(()-> .5));
+        joystick2.y().onFalse(elevator.coaralGuideCommand(()-> 0));
+        joystick2.x().whileTrue(elevator.coaralGuideCommand(()-> -.5));
+        joystick2.x().onFalse(elevator.coaralGuideCommand(()-> 0));
+        joystick2.leftStick().onTrue(elevator.setAngleCommand(()->Constant.AllLevels)
+        .andThen(new WaitCommand(.5))
+        .andThen(elevator.elevatorLift(()->6)));
 
+        joystick2.rightStick().onTrue(elevator.elevatorLift(()->Constant.heightAlg1)
+        .andThen(new WaitCommand(1))
+        .andThen(elevator.setAngleCommand(() -> Constant.algee))
+        .andThen(elevator.intakeMotorCommand(()-> -.2))
+        .andThen(new WaitCommand(3))
+        .andThen(elevator.intakeMotorCommand(() -> -.05)));
+
+        joystick2.b().onTrue(elevator.elevatorLift(() -> Constant.hight4)
+        .andThen(new WaitCommand(3))
+        .andThen(elevator.setAngleCommand(() -> Constant.shooting))
+        .andThen(elevator.intakeMotorCommand(()-> 1)));
+
+
+
+
+        
+        // deleted BallGrabber subsystem, elevator already contains everything related to intake arm. Also is position isntead of timed base
         //might work
-        //ballGrabber.linebreak().onTrue(ballGrabber.BallGrabbyThing(0.1).andThen(elevator.elevatorLift(()->130)));
 
         //Board.povDown().onTrue((ballGrabber.BallGrabbyThingTurning(0.1)).andThen(new WaitCommand(0.3)).andThen(elevator.elevatorLift(()-> 55).andThen(new WaitCommand(0.2).andThen((ballGrabber.BallGrabbyThingTurning(0.1))))));
         //Board.povUp().onTrue((ballGrabber.BallGrabbyThingTurning(0.1)).andThen(new WaitCommand(0.3)).andThen(elevator.elevatorLift(()-> 20).andThen(new WaitCommand(0.2).andThen((ballGrabber.BallGrabbyThingTurning(0.1))))));

@@ -21,6 +21,10 @@ public class Robot extends TimedRobot {
   
   @Override
   public void robotPeriodic() {
+    // adds vision measurement to pose
+    if (m_robotContainer.vision.getPose() == null){
+      return;
+    }
     if (m_robotContainer.vision.getPose().tagCount >= 2) {
       m_robotContainer.drivetrain.addVisionMeasurement(m_robotContainer.vision.getPose().pose, m_robotContainer.vision.getPose().timestampSeconds);
     }

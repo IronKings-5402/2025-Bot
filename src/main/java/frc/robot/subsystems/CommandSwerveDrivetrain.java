@@ -237,6 +237,9 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         }
         SetAngles();
     }
+
+
+    // sets angle setpoints
     void SetAngles(){
                 //BlueSide
                 Angles.put(17.0,300.0);
@@ -272,7 +275,8 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
 
                 m_turnToAngle.HeadingController = new PhoenixPIDController(2, 0, 0);
     }
-
+    // TODO: change names to be proper java naming schemes. strafeApril not StrafeApril
+    // moves robot centroic x position
     void StrafeApril(double measurementX, double yVel, boolean left){
         double offset = 1;
         if (left){
@@ -280,11 +284,11 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         }
         this.setControl(new SwerveRequest.RobotCentric().withVelocityY(-AimingX.calculate(measurementX, offset)).withVelocityX(yVel));
     }
-
+    // command doe strafe
     public Command StrafeApril (DoubleSupplier measurementX, DoubleSupplier yVel,BooleanSupplier left){
         return run(()-> StrafeApril(measurementX.getAsDouble(), yVel.getAsDouble(), left.getAsBoolean()));
       }
-
+    // faces angle
     void turnToAngle (double angle, double x, double y){
         /*double aprilNumber = AprilNumber;
          if (aprilNumber == -1){
@@ -299,7 +303,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
 
 
 
-    //HEY Elija or however you type your name could you put comments on what you add so I know what your doing
+    //command to turn to angle
      public Command turnToAngle (DoubleSupplier angle, DoubleSupplier x, DoubleSupplier y){
         return run(()-> turnToAngle(angle.getAsDouble(), x.getAsDouble(),y.getAsDouble()));
       }
@@ -336,13 +340,13 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     public Command sysIdDynamic(SysIdRoutine.Direction direction) {
         return m_sysIdRoutineToApply.dynamic(direction);
     }
-
+    // enums for path
     public enum paths {
         station,
         coralA,
         coralB
     }
-
+    // go to pathplanner point with path
     public Command goToPoint(paths path){
         String pathName = path.name();
         try {
