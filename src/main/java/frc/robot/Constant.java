@@ -15,6 +15,8 @@ public class Constant {
 
     public static double shooting = 149.22;
 
+    public static double toplevelCoralangle = 65.37;
+
 
     public static double hight1 = 10.6;
 
@@ -25,4 +27,6 @@ public class Constant {
     public static double hight4 = 54.5;
 
     public static double heightAlg1 = 28.13;
+
+    
 }

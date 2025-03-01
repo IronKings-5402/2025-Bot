@@ -4,6 +4,7 @@
 
 package frc.robot;
 
+import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
@@ -21,14 +22,25 @@ public class Robot extends TimedRobot {
   
   @Override
   public void robotPeriodic() {
+    boolean doRejectUpdate = false;
     // adds vision measurement to pose
-    if (m_robotContainer.vision.getPose() == null){
-      return;
+    LimelightHelpers.SetRobotOrientation("limelight", m_robotContainer.drivetrain.getState().Pose.getRotation().getDegrees(), 0, 0, 0, 0, 0);
+    LimelightHelpers.PoseEstimate mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight");
+    if(Math.abs(m_robotContainer.drivetrain.getState().Speeds.omegaRadiansPerSecond) > 2*Math.PI) // if our angular velocity is greater than 720 degrees per second, ignore vision updates
+    {
+      doRejectUpdate = true;
     }
-    if (m_robotContainer.vision.getPose().tagCount >= 2) {
-      m_robotContainer.drivetrain.addVisionMeasurement(m_robotContainer.vision.getPose().pose, m_robotContainer.vision.getPose().timestampSeconds);
+    if(mt2.tagCount == 0)
+    {
+      doRejectUpdate = true;
     }
-    CommandScheduler.getInstance().run(); 
+    if(!doRejectUpdate)
+    {
+      m_robotContainer.drivetrain.setVisionMeasurementStdDevs(VecBuilder.fill(.7,.7,9999999));
+      m_robotContainer.drivetrain.addVisionMeasurement(
+          mt2.pose,
+          mt2.timestampSeconds);
+    }
   }
 
   @Override

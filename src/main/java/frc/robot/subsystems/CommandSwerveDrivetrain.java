@@ -3,7 +3,9 @@ package frc.robot.subsystems;
 import static edu.wpi.first.units.Units.*;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.function.BooleanSupplier;
 import java.util.function.DoubleSupplier;
 import java.util.function.Supplier;
@@ -20,15 +22,22 @@ import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.config.PIDConstants;
 import com.pathplanner.lib.config.RobotConfig;
 import com.pathplanner.lib.controllers.PPHolonomicDriveController;
+import com.pathplanner.lib.path.GoalEndState;
+import com.pathplanner.lib.path.PathConstraints;
 import com.pathplanner.lib.path.PathPlannerPath;
+import com.pathplanner.lib.path.Waypoint;
 import com.pathplanner.lib.util.FileVersionException;
 
+import edu.wpi.first.apriltag.AprilTagFieldLayout;
+import edu.wpi.first.apriltag.AprilTagFields;
 import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
+import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.Notifier;
@@ -64,9 +73,31 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     private final SwerveRequest.ApplyRobotSpeeds m_pathApplyRobotSpeeds = new SwerveRequest.ApplyRobotSpeeds();
     PIDController AimingX = new PIDController(.1, 0, 0);
     private final SwerveRequest.FieldCentricFacingAngle m_turnToAngle = new SwerveRequest.FieldCentricFacingAngle();
+    //private final SwerveRequest.ApplyRobotSpeeds m_moveInDirection = new SwerveRequest.ApplyRobotSpeeds();
 
     Vision Vision = new Vision();
     /* SysId routine for characterizing translation. This is used to find PID gains for the drive motors. */
+
+    static AprilTagFieldLayout APRIL_TAGS = AprilTagFieldLayout.loadField(AprilTagFields.k2025Reefscape);
+    private static boolean flipToRed; // whether to use red reef (otherwise blue)
+
+    private static final Translation2d REEF_CENTER_BLUE = APRIL_TAGS.getTagPose(18).get().toPose2d().getTranslation()
+    .plus(APRIL_TAGS.getTagPose(21).get().toPose2d().getTranslation()).div(2);
+
+    // Pose at midpoint between tags 10 and 7 (which are opposite on red reef)
+    private static final Translation2d REEF_CENTER_RED = APRIL_TAGS.getTagPose(10).get().toPose2d().getTranslation()
+    .plus(APRIL_TAGS.getTagPose(7).get().toPose2d().getTranslation()).div(2);
+
+
+    private static final Distance REEF_APOTHEM = Meters.of(
+        APRIL_TAGS.getTagPose(18).get().toPose2d().getTranslation().getDistance(REEF_CENTER_BLUE))
+        .plus(Meters.of(2));
+
+// translation to move from centered on a side to scoring position for the left branch
+    private static final Translation2d CENTERED_TO_LEFT_BRANCH = new Translation2d(Meters.of(0),
+        Inches.of(12.94 / 2));
+
+
     private final SysIdRoutine m_sysIdRoutineTranslation = new SysIdRoutine(
         new SysIdRoutine.Config(
             null,        // Use default ramp rate (1 V/s)
@@ -274,6 +305,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
                 Angles.put(5.0,0.0);
 
                 m_turnToAngle.HeadingController = new PhoenixPIDController(2, 0, 0);
+
     }
     // TODO: change names to be proper java naming schemes. strafeApril not StrafeApril
     // moves robot centroic x position
@@ -302,6 +334,10 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     }
 
 
+    /*void MoveInDirection (double speed){
+        this.setControl(m_moveInDirection.withTargetDirection());
+    }
+    */
 
     //command to turn to angle
      public Command turnToAngle (DoubleSupplier angle, DoubleSupplier x, DoubleSupplier y){
@@ -420,8 +456,64 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
      * @param visionMeasurementStdDevs Standard deviations of the vision pose measurement
      *     in the form [x, y, theta]ᵀ, with units in meters and radians.
      */
+    private static Pose2d flipPose(Pose2d pose) {
+        Translation2d center = REEF_CENTER_BLUE.interpolate(REEF_CENTER_RED, 0.5);
+        Translation2d poseTranslation = pose.getTranslation();
+        poseTranslation = poseTranslation.rotateAround(center, Rotation2d.k180deg);
+        return new Pose2d(poseTranslation, pose.getRotation().rotateBy(Rotation2d.k180deg));
+    }
+    /**
+ * Calculates the pose of the robot for scoring on a branch or trough.
+ *
+ * @param side The side of the reef (0 for left, increases clockwise).
+ * @param relativePos The relative position on the reef (-1 for right branch, 0 for center, 1 for left branch).
+ * @return The calculated Pose2d for scoring.
+ */
+     public static Pose2d getReefPose(int side, int relativePos) {
+        // determine whether to use red or blue reef position
+        flipToRed = DriverStation.getAlliance().isPresent() && DriverStation.getAlliance().get() == Alliance.Red;
+    
+        // initially do all calculations from blue, then flip later
+        Translation2d reefCenter = REEF_CENTER_BLUE;
+    
+        // robot position centered on close reef side
+        Translation2d translation = reefCenter.plus(new Translation2d(REEF_APOTHEM.unaryMinus(), Meters.zero()));
+        // translate to correct branch (left, right, center)
+        translation = translation.plus(CENTERED_TO_LEFT_BRANCH.times(relativePos));
+        // rotate to correct side
+        translation = translation.rotateAround(reefCenter, Rotation2d.fromDegrees(-60 * side));
+    
+        // make pose from translation and correct rotation
+        Pose2d reefPose = new Pose2d(translation,
+                Rotation2d.fromDegrees(-60 * side));
+    
+        if (flipToRed) {
+            reefPose = flipPose(reefPose);
+        }
+    
+        return reefPose;
+    }
 
-     
+    public PathPlannerPath getPath(Pose2d pose){
+        List<Waypoint> waypoints = PathPlannerPath.waypointsFromPoses(this.getState().Pose,pose);
+        PathConstraints constraints = new PathConstraints(3.0, 3.0, 2 * Math.PI, 4 * Math.PI); // The constraints for this path.
+        PathPlannerPath path = new PathPlannerPath(
+        waypoints,
+        constraints,
+        null, // The ideal starting state, this is only relevant for pre-planned paths, so can be null for on-the-fly paths.
+        new GoalEndState(0.0, Rotation2d.fromDegrees(-90)) // Goal end state. You can set a holonomic rotation here. If using a differential drivetrain, the rotation will have no effect.
+        );
+
+        // Prevent the path from being flipped if the coordinates are already correct
+        path.preventFlipping = true;
+        return path;
+    }
+
+    public Command goToPath(PathPlannerPath path){
+        return AutoBuilder.followPath(path);
+    }
+
+    
     @Override
     public void addVisionMeasurement(
         Pose2d visionRobotPoseMeters,
