@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.function.DoubleSupplier;
 
 import com.ctre.phoenix.motorcontrol.ControlMode;
+import com.ctre.phoenix.motorcontrol.NeutralMode;
 import com.ctre.phoenix.motorcontrol.can.TalonSRX;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.PositionVoltage;
@@ -50,6 +51,7 @@ public class Elevator extends SubsystemBase {
     PIDController coralGuidePID = new PIDController(.01, 0, 0);
 
     public Elevator() {
+        coaralGuide.setNeutralMode(NeutralMode.Brake);
         TalonFXConfiguration elevatorConfigleft = new TalonFXConfiguration();
         TalonFXConfiguration elevatorConfigright = new TalonFXConfiguration();
         TalonFXConfiguration angleMotorConfig = new TalonFXConfiguration();
@@ -65,7 +67,8 @@ public class Elevator extends SubsystemBase {
         angleMotorConfig.MotorOutput.NeutralMode = NeutralModeValue.Brake;
         elevatorLiftleft.getConfigurator().apply(elevatorConfigleft);
         elevatorLiftRight.getConfigurator().apply(elevatorConfigright);
-         //5.5 in for 8 rotations
+        angleMotor.getConfigurator().apply(angleMotorConfig);
+        //5.5 in for 8 rotations
 
         angles.put("Level1", 110.0);
         angles.put("Level2-3", 120.0);
@@ -131,7 +134,7 @@ public class Elevator extends SubsystemBase {
     // Sets elevator position
     void setPos (double height){
         elevatorLiftRight.setControl(new PositionVoltage((height-6)*8/5.5));
-        elevatorLiftleft.setControl(new Follower(elevatorLiftleft.getDeviceID(), false));
+        elevatorLiftleft.setControl(new Follower(elevatorLiftRight.getDeviceID(), true));
     }
 
         

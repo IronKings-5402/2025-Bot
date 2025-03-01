@@ -40,6 +40,8 @@ import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
+import edu.wpi.first.wpilibj.smartdashboard.Field2d;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.Notifier;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -54,6 +56,9 @@ import frc.robot.generated.TunerConstants.TunerSwerveDrivetrain;
  * Subsystem so it can easily be used in command-based projects.
  */
 public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Subsystem {
+
+    
+    private final Field2d field = new Field2d();
     double lastTag = 18.0;
     private static final double kSimLoopPeriod = 0.005; // 5 ms
     private Notifier m_simNotifier = null;
@@ -158,6 +163,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
 
 
     public void configureAutoBuilder() {
+        SmartDashboard.putData("Field", field);
         try {
             var config = RobotConfig.fromGUISettings();
             AutoBuilder.configure(
@@ -344,6 +350,30 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         return run(()-> turnToAngle(angle.getAsDouble(), x.getAsDouble(),y.getAsDouble()));
       }
 
+      public PathPlannerPath getPath(double tag, double pos) throws FileVersionException, IOException, ParseException{
+        if (tag == 19){
+            if (pos == -1){
+                return PathPlannerPath.fromPathFile("BlueLeft0");
+            }
+            else if (pos == 0){
+                return PathPlannerPath.fromPathFile("BlueCenter0");
+            }
+            else if (pos == 1){
+                return PathPlannerPath.fromPathFile("BlueRight0");
+            }
+        }
+        return null;
+      }
+      public Command goToTag(DoubleSupplier tag, DoubleSupplier pos){
+        try {
+            return AutoBuilder.followPath(getPath(tag.getAsDouble(),pos.getAsDouble()));
+        } catch (FileVersionException | IOException | ParseException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+            return new WaitCommand(0);
+        }
+      }
+
 
     /**
      * Returns a command that applies the specified control request to this swerve drivetrain.
@@ -413,6 +443,8 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
                 m_hasAppliedOperatorPerspective = true;
             });
         }
+        field.setRobotPose(this.getState().Pose);
+
     }
 
 
@@ -509,8 +541,8 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         return path;
     }
 
-    public Command goToPath(PathPlannerPath path){
-        return AutoBuilder.followPath(path);
+    public Command goToPath(Supplier<PathPlannerPath> path){
+        return AutoBuilder.followPath(path.get());
     }
 
     

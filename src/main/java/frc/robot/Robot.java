@@ -22,25 +22,61 @@ public class Robot extends TimedRobot {
   
   @Override
   public void robotPeriodic() {
+    CommandScheduler.getInstance().run();
+    // boolean doRejectUpdate1 = false;
+    // boolean doRejectUpdate2 = false;
+    // // adds vision measurement to pose
+    // LimelightHelpers.PoseEstimate mt21 = LimelightHelpers.getBotPoseEstimate_wpiBlue("limelight-back");
+    // LimelightHelpers.PoseEstimate mt22 = LimelightHelpers.getBotPoseEstimate_wpiBlue("limelight-front");
+    // if(Math.abs(m_robotContainer.drivetrain.getState().Speeds.omegaRadiansPerSecond) > 2*Math.PI) // if our angular velocity is greater than 720 degrees per second, ignore vision updates
+    // {
+    //   doRejectUpdate1 = true;
+    //   doRejectUpdate2 = true;
+    // }
+    // if(mt21 == null||mt21.tagCount == 0)
+    // {
+    //   doRejectUpdate1 = true;
+    // }
+    // if(mt22==null||mt22.tagCount == 0)
+    // {
+    //   doRejectUpdate2 = true;
+    // }
+    // if(!doRejectUpdate1)
+    // {
+    //   m_robotContainer.drivetrain.setVisionMeasurementStdDevs(VecBuilder.fill(.99,.99,9999999));
+    //   m_robotContainer.drivetrain.addVisionMeasurement(
+    //       mt21.pose,
+    //       mt21.timestampSeconds);
+    // }
+    // if(!doRejectUpdate2)
+    // {
+    //   m_robotContainer.drivetrain.setVisionMeasurementStdDevs(VecBuilder.fill(.99,.99,9999999));
+    //   m_robotContainer.drivetrain.addVisionMeasurement(
+    //       mt22.pose,
+    //       mt22.timestampSeconds);
+    // }
     boolean doRejectUpdate = false;
-    // adds vision measurement to pose
-    LimelightHelpers.SetRobotOrientation("limelight", m_robotContainer.drivetrain.getState().Pose.getRotation().getDegrees(), 0, 0, 0, 0, 0);
-    LimelightHelpers.PoseEstimate mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight");
-    if(Math.abs(m_robotContainer.drivetrain.getState().Speeds.omegaRadiansPerSecond) > 2*Math.PI) // if our angular velocity is greater than 720 degrees per second, ignore vision updates
-    {
-      doRejectUpdate = true;
-    }
-    if(mt2.tagCount == 0)
-    {
-      doRejectUpdate = true;
-    }
-    if(!doRejectUpdate)
-    {
-      m_robotContainer.drivetrain.setVisionMeasurementStdDevs(VecBuilder.fill(.7,.7,9999999));
-      m_robotContainer.drivetrain.addVisionMeasurement(
-          mt2.pose,
-          mt2.timestampSeconds);
-    }
+    System.out.println(m_robotContainer.drivetrain.getState().Pose.getRotation().getDegrees());
+    LimelightHelpers.SetRobotOrientation("limelight-front", m_robotContainer.drivetrain.getState().Pose.getRotation().getDegrees(), 0, 0, 0, 0, 0);
+      LimelightHelpers.PoseEstimate mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight-front");
+      if(Math.abs(m_robotContainer.drivetrain.getPigeon2().getRate()) > 720) // if our angular velocity is greater than 720 degrees per second, ignore vision updates
+      {
+        doRejectUpdate = true;
+      }
+      if(mt2.tagCount == 0)
+      {
+        doRejectUpdate = true;
+      }
+      if(!doRejectUpdate)
+      {
+       m_robotContainer.drivetrain.setVisionMeasurementStdDevs(VecBuilder.fill(.7,.7,9999999));
+        m_robotContainer.drivetrain.addVisionMeasurement(
+            mt2.pose,
+            mt2.timestampSeconds);
+      }
+
+
+
   }
 
   @Override

@@ -89,7 +89,7 @@ public class RobotContainer {
        //joystick.b().whileTrue(elevator.elevatorLift(()-> 55));
        //joystick.a().whileTrue(elevator.elevatorLift(()-> 6));
 
-
+        drivetrain.configureAutoBuilder();
 
        //Grabbything
        joystick.a().whileTrue(elevator.ServoThing(90)
@@ -149,18 +149,19 @@ public class RobotContainer {
         .andThen(elevator.setAngleCommand(()->Constant.AllLevels)));
 
 
+        joystick.povDown().onTrue(drivetrain.goToTag(() -> 19, ()-> -1));
 
-        joystick2.povDown().whileTrue(elevator.ServoThing(270));
+
+        joystick2.povRight().whileTrue(elevator.ServoThing(270));
         joystick2.povLeft().whileTrue(elevator.ServoThing(90));
         // intake on
-        joystick2.start().onTrue(elevator.intakeMotorCommand(() -> 1));
+        //joystick2.start().onTrue(elevator.intakeMotorCommand(() -> 1));
  
         // sensor tripped intake off
         elevator.sensor().onTrue(elevator.intakeMotorCommand(() -> 0)
         .andThen(elevator.setAngleCommand(()-> Constant.AllLevels)));
 
         // goes to path
-        joystick2.rightBumper().onTrue(drivetrain.goToPoint(paths.station));
 
         // reset heading
         joystick.start().onTrue(drivetrain.runOnce(() -> drivetrain.seedFieldCentric()));
@@ -175,19 +176,19 @@ public class RobotContainer {
         joystick.povUpLeft().onTrue(drivetrain.turnToAngle(() -> 315, ()->joystick.getLeftX() * MaxSpeed , () ->joystick.getLeftY() * MaxSpeed));
         joystick.povUpRight().onTrue(drivetrain.turnToAngle(() -> 45, ()->joystick.getLeftX() * MaxSpeed, ()->joystick.getLeftY() * MaxSpeed));
         */
-        joystick.povDown().onTrue(drivetrain.goToPath(drivetrain.getPath(CommandSwerveDrivetrain.getReefPose(0, -1))));
+
 
         // resets to normal driving if right stick moved
-        joystick.axisGreaterThan(4, .05).onTrue(drivetrain.getDefaultCommand());
-        joystick.axisGreaterThan(4, -.05).onTrue(drivetrain.getDefaultCommand());
+        //joystick.axisGreaterThan(4, .05).onTrue(drivetrain.getDefaultCommand());
+        //joystick.axisGreaterThan(4, -.05).onTrue(drivetrain.getDefaultCommand());
 
         joystick.y().whileTrue(elevator.coaralGuideCommand(()-> .5));
         joystick.y().onFalse(elevator.coaralGuideCommand(()-> 0));
         joystick.x().whileTrue(elevator.coaralGuideCommand(()-> -.5));
         joystick.x().onFalse(elevator.coaralGuideCommand(()-> 0));
-        joystick2.leftStick().onTrue(elevator.setAngleCommand(()->Constant.AllLevels)
-        .andThen(new WaitCommand(.5))
-        .andThen(elevator.elevatorLift(()->6)));
+        // joystick2.leftStick().onTrue(elevator.setAngleCommand(()->Constant.AllLevels)
+        // .andThen(new WaitCommand(.5))
+        // .andThen(elevator.elevatorLift(()->6)));
 
         joystick2.x().onTrue(elevator.elevatorLift(()->Constant.heightAlg1)
         .andThen(new WaitCommand(1))
